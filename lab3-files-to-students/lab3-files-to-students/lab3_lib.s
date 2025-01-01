@@ -19,7 +19,7 @@ input_buffer:
 .buffer_pos:
     .quad 0             # Variabel för att hålla aktuell position
 prompt_msg:
-    .asciz "Ange indata: "  #S träng för promptmeddelande
+    .asciz "Ange indata: "  #Sträng för promptmeddelande
 
     .section .bss
 bytes_read:
