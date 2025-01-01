@@ -29,9 +29,9 @@ bytes_read:
     .globl inImage, getChar
 
 #------------------------------------
-inImage:
-Läser en ny rad från tangentbordet till bufferten
-------------------------------------
+#inImage:
+#Läser en ny rad från tangentbordet till bufferten
+#------------------------------------
 inImage:
     pushq %rbp
     movq %rsp, %rbp
@@ -52,10 +52,10 @@ inImage:
     popq %rbp
     ret
 
-------------------------------------
-getChar:
-Hämtar nästa tecken från bufferten
-------------------------------------
+#------------------------------------
+#getChar:
+#Hämtar nästa tecken från bufferten
+#------------------------------------
 getChar:
     pushq %rbp
     movq %rsp, %rbp
