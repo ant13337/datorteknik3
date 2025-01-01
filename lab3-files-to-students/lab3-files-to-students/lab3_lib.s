@@ -12,12 +12,12 @@
 ;void setOutPos(int);
 
 
-#Buffert och variabler
-.section .data
-    input_buffer:
-.space 256          # Reservplats för bufferten (256 bytes)
-    buffer_pos:
-.quad 0             # Variabel för att hålla aktuell position
+# Buffert och variabler
+    .section .data
+input_buffer:
+    .space 256          # Reservplats för bufferten (256 bytes)
+.buffer_pos:
+    .quad 0             # Variabel för att hålla aktuell position
 prompt_msg:
     .asciz "Ange indata: "  # Sträng för promptmeddelande
 
