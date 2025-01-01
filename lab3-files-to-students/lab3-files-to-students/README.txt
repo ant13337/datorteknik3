@@ -1,4 +1,4 @@
-Datorteknik Lab 3 - "Bibliotek för in- och utmatning (Intel x64 assembler)"
+ Datorteknik Lab 3 - "Bibliotek för in- och utmatning (Intel x64 assembler)"
 ---------------------------------------------------------------------------
 
 I denna katalog finns de filer ni kan utgå från för att jobba med laborationen.
