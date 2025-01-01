@@ -1,5 +1,5 @@
 ;void inImage();
-long long getInt();
+;long long getInt();
 ;int getText(char *, int);
 ;int getInPos();
 ;void setInPos(int);
