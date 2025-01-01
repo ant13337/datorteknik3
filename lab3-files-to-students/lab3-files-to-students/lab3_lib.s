@@ -1,4 +1,4 @@
-;void inImage();
+void inImage();
 ;long long getInt();
 ;int getText(char *, int);
 ;int getInPos();
