@@ -3,7 +3,7 @@
 
 I denna katalog finns de filer ni kan utgå från för att jobba med laborationen.
 
-Följande filer finns (modifiera inte dessa!):
+Följa nde filer finns (modifiera inte dessa!):
 ---------------------------------------------
 Mprov64.s   - testprogram i assembler
 test_prog.c - testprogram i C
