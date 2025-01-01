@@ -34,7 +34,7 @@ bytes_read:
 #------------------------------------
 inImage:
     pushq %rbp
-    movq %rsp, %rbp
+    movq %rsp, %rbp.
 
     # Skriv ut prompten
     leaq prompt_msg(%rip), %rdi  # Ladda adress till prompten i %rdi
