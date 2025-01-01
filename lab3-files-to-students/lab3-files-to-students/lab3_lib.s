@@ -11,70 +11,158 @@
 ;int getOutPos();
 ;void setOutPos(int);
 
+# ------------------------------------------------------------------------------
+# Assembly Skeleton for Input/Output Library (Intel x64, AT&T Syntax)
+# Blekinge Tekniska Högskola - Computer Technology Course
+# ------------------------------------------------------------------------------
 
-#Buffert och variabler
-.section .data
-    input_buffer:
-.space 256          # Reservplats för bufferten (256 bytes)
-    buffer_pos:
-.quad 0             # Variabel för att hålla aktuell position
-prompt_msg:
-    .asciz "Ange indata: "  # Sträng för promptmeddelande
+# Define global symbols so they can be called from C
+.global inImage
+.global getInt
+.global getText
+.global getChar
+.global getInPos
+.global setInPos
+.global outImage
+.global putInt
+.global putText
+.global putChar
+.global getOutPos
+.global setOutPos
 
-    .section .bss
-bytes_read:
-    .quad 0             # Reservplats för lästa tecken
+# ------------------------------------------------------------------------------
+# .bss section for uninitialized data (buffers)
+# ------------------------------------------------------------------------------
+.bss
+    input_buffer:         .space 256  # Example input buffer size
+    output_buffer:        .space 256  # Example output buffer size
+    input_position:       .quad 0     # Current position in input buffer
+    output_position:      .quad 0     # Current position in output buffer
 
-    .section .text
-    .globl inImage, getChar
+# ------------------------------------------------------------------------------
+# .text section for code
+# ------------------------------------------------------------------------------
+.text
 
-#------------------------------------
-#inImage:
-#Läser en ny rad från tangentbordet till bufferten
-#------------------------------------
+# ------------------------------------------------------------------------------
+# Input Functions
+# ------------------------------------------------------------------------------
+
+# inImage: Read a new text line from keyboard
 inImage:
-    pushq %rbp
-    movq %rsp, %rbp
-
-    # Skriv ut prompten
-    leaq prompt_msg(%rip), %rdi  # Ladda adress till prompten i %rdi
-    xorl %eax, %eax              # Ingen flyttal används
-    call printf                  # Anropa printf
-
-    # Läs in en ny rad
-    leaq input_buffer(%rip), %rdi  # Adress till bufferten
-    movl $256, %esi                # Max antal tecken
-    call fgets                     # Anropa fgets för att läsa in rad
-
-    # Nollställ positionen
-    movq $0, buffer_pos(%rip)
-
-    popq %rbp
+    # Function implementation goes here
+    # Parameters (typically passed in registers like %rdi, %rsi, etc.)
+    # Return value (typically in %rax)
+    pushq   %rbp          # Standard function prologue
+    movq    %rsp, %rbp
+    # ... your implementation ...
+    movq    %rbp, %rsp    # Standard function epilogue
+    popq    %rbp
     ret
 
-#------------------------------------
-#getChar:
-#Hämtar nästa tecken från bufferten
-#------------------------------------
+# getInt: Parse and convert an integer from input buffer
+getInt:
+    pushq   %rbp
+    movq    %rsp, %rbp
+    # ... your implementation ...
+    movq    %rbp, %rsp
+    popq    %rbp
+    ret
+
+# getText: Transfer text from input buffer to memory
+getText:
+    pushq   %rbp
+    movq    %rsp, %rbp
+    # ... your implementation ...
+    movq    %rbp, %rsp
+    popq    %rbp
+    ret
+
+# getChar: Return a single character from input buffer
 getChar:
-    pushq %rbp
-    movq %rsp, %rbp
-
-    # Läs aktuell position i bufferten
-    movq buffer_pos(%rip), %rax
-    movzbl input_buffer(%rax, %rip), %rbx  # Hämta tecknet från bufferten
-
-    # Kontrollera om null-terminator nåtts
-    cmpb $0, %bl
-    je refill_buffer
-
-    # Uppdatera position och returnera tecknet
-    incq buffer_pos(%rip)        # Öka positionen
-    movq %rbx, %rax              # Sätt returvärdet till tecknet
-
-    popq %rbp
+    pushq   %rbp
+    movq    %rsp, %rbp
+    # ... your implementation ...
+    movq    %rbp, %rsp
+    popq    %rbp
     ret
 
-refill_buffer:
-    call inImage                 # Fyll på bufferten
-    jmp getChar                  # Försök hämta tecken igen
+# getInPos: Return current input buffer position
+getInPos:
+    pushq   %rbp
+    movq    %rsp, %rbp
+    # Load the current input position into %rax (return register)
+    movq    input_position, %rax
+    movq    %rbp, %rsp
+    popq    %rbp
+    ret
+
+# setInPos: Set input buffer position
+setInPos:
+    pushq   %rbp
+    movq    %rsp, %rbp
+    # Get the new position (typically passed in a register like %rdi)
+    movq    %rdi, input_position
+    movq    %rbp, %rsp
+    popq    %rbp
+    ret
+
+# ------------------------------------------------------------------------------
+# Output Functions
+# ------------------------------------------------------------------------------
+
+# outImage: Write string from output buffer to terminal
+outImage:
+    pushq   %rbp
+    movq    %rsp, %rbp
+    # ... your implementation ...
+    movq    %rbp, %rsp
+    popq    %rbp
+    ret
+
+# putInt: Place integer as string in output buffer
+putInt:
+    pushq   %rbp
+    movq    %rsp, %rbp
+    # ... your implementation ...
+    movq    %rbp, %rsp
+    popq    %rbp
+    ret
+
+# putText: Place text string in output buffer
+putText:
+    pushq   %rbp
+    movq    %rsp, %rbp
+    # ... your implementation ...
+    movq    %rbp, %rsp
+    popq    %rbp
+    ret
+
+# putChar: Place single character in output buffer
+putChar:
+    pushq   %rbp
+    movq    %rsp, %rbp
+    # ... your implementation ...
+    movq    %rbp, %rsp
+    popq    %rbp
+    ret
+
+# getOutPos: Return current output buffer position
+getOutPos:
+    pushq   %rbp
+    movq    %rsp, %rbp
+    # Load the current output position into %rax
+    movq    output_position, %rax
+    movq    %rbp, %rsp
+    popq    %rbp
+    ret
+
+# setOutPos: Set output buffer position
+setOutPos:
+    pushq   %rbp
+    movq    %rsp, %rbp
+    # Get the new position (typically passed in a register like %rdi)
+    movq    %rdi, output_position
+    movq    %rbp, %rsp
+    popq    %rbp
+    ret
