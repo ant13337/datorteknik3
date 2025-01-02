@@ -1,4 +1,4 @@
-
+#w
 
 .section .data
     input_buffer: .space 256  # Reserve 256 bytes for the input buffer
