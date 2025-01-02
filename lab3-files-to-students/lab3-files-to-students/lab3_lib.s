@@ -145,7 +145,7 @@ putChar:
     # ... your implementation ...
     movq    %rbp, %rsp
     popq    %rbp
-    ret
+    re
 
 # getOutPos: Return current output buffer position
 getOutPos:
