@@ -6,6 +6,16 @@ output_buffer: .space OUTPUT_BUFFER_SIZE
 input_position: .quad 0
 output_position: .quad 0
 
+format_inImage_entry: .asciz "inImage: Entering\n"
+format_inImage_exit: .asciz "inImage: Exiting, input_buffer='%s', input_position=%ld\n"
+format_getInt_entry: .asciz "getInt: Entering, input_position=%ld\n"
+format_getInt_skip_space: .asciz "getInt: Skipping whitespace, input_position=%ld, char='%c'\n"
+format_getInt_checksign: .asciz "getInt: Checking sign, input_position=%ld, char='%c'\n"
+format_getInt_parsedigit: .asciz "getInt: Parsing digit, input_position=%ld, char='%c', accumulator=%ld\n"
+format_getInt_exit: .asciz "getInt: Exiting, value=%ld, input_position=%ld\n"
+format_getInt_call_inImage: .asciz "getInt: Calling inImage from getInt, input_position=%ld\n"
+format_getint_endparse: .asciz "getInt: End parse, accumulator=%ld\n"
+
 .section .bss
 .comm stdin, 8
 .comm stdout, 8
@@ -25,13 +35,16 @@ output_position: .quad 0
 
 .extern fgets
 .extern puts
-.extern printf  # For debugging purposes, can be removed later
-.extern exit    # For debugging purposes, can be removed later
+.extern printf  # For debugging purposes
+.extern exit    # For debugging purposes
 
 # Funktion: inImage
 inImage:
     pushq %rbp
     movq %rsp, %rbp
+
+    leaq format_inImage_entry, %rdi
+    call printf
 
     # Reset input position
     movq $0, input_position
@@ -39,9 +52,14 @@ inImage:
     # Load arguments for fgets
     leaq input_buffer, %rdi
     movq $INPUT_BUFFER_SIZE, %rsi
-    movq stdin(%rip), %rdx  # Assuming stdin is initialized elsewhere
+    movq stdin(%rip), %rdx
 
     call fgets
+
+    leaq format_inImage_exit, %rdi
+    leaq input_buffer, %rsi
+    movq input_position, %rdx
+    call printf
 
     popq %rbp
     ret
@@ -51,37 +69,41 @@ getInt:
     pushq %rbp
     movq %rsp, %rbp
 
+    movq input_position, %rsi  # Save input_position before potential inImage call
+    leaq format_getInt_entry, %rdi
+    movq %rsi, %rsi
+    call printf
+
 .getInt_start:
-    # Check if input buffer is empty or at the end
+    # Check if input buffer needs to be refreshed
     movq input_position, %rax
     cmpq $INPUT_BUFFER_SIZE, %rax
     jge .getInt_call_inImage
-    cmpq $0, %rax
-    je .getInt_call_inImage
-    leaq input_buffer, %rdi
-    addq %rax, %rdi
-    cmpb $0, (%rdi)
-    je .getInt_call_inImage
 
-.getInt_parse:
-    movq input_position, %rax
     leaq input_buffer, %rsi
-    addq %rax, %rsi
-    movq $0, %rcx  # Result
-    movq $1, %r8   # Sign multiplier (default positive)
+    movq input_position, %rcx
+    addq %rcx, %rsi
 
 .getInt_skip_whitespace:
     movzbq (%rsi), %rdx
     cmpq $' ', %rdx
     jne .getInt_check_sign
+    leaq format_getInt_skip_space, %rdi
+    movq input_position, %rsi
+    movzx %dl, %ecx
+    call printf
     incq %rsi
     incq input_position
     cmpq $INPUT_BUFFER_SIZE, input_position
-    jge .getInt_end  # End of buffer
+    jge .getInt_call_inImage  # Reached end of buffer, need more input
     jmp .getInt_skip_whitespace
 
 .getInt_check_sign:
     movzbq (%rsi), %rdx
+    leaq format_getInt_checksign, %rdi
+    movq input_position, %rsi
+    movzx %dl, %ecx
+    call printf
     cmpq $'-', %rdx
     je .getInt_negative
     cmpq $'+', %rdx
@@ -89,37 +111,60 @@ getInt:
     jmp .getInt_parse_digits
 
 .getInt_negative:
-    movq $-1, %r8
+    movq $-1, %r9  # Sign multiplier
     incq %rsi
     incq input_position
     jmp .getInt_parse_digits
 
 .getInt_positive:
+    movq $1, %r9   # Sign multiplier
     incq %rsi
     incq input_position
     jmp .getInt_parse_digits
 
 .getInt_parse_digits:
+    movq $0, %rax  # Initialize result to 0
+.getInt_digit_loop:
     movzbq (%rsi), %rdx
     cmpq $'0', %rdx
-    jl .getInt_end  # Not a digit
+    jl .getInt_end_parse  # Not a digit
     cmpq $'9', %rdx
-    jg .getInt_end  # Not a digit
+    jg .getInt_end_parse  # Not a digit
+
+    leaq format_getInt_parsedigit, %rdi
+    movq input_position, %rsi
+    movzx %dl, %ecx
+    movq %rax, %r8
+    call printf
 
     subq $'0', %rdx
-    imulq $10, %rcx
-    addq %rdx, %rcx
-    incq %rsi
-    incq input_position
-    jmp .getInt_parse_digits
+    imulq $10, %rax
+    addq %rdx, %rax
+    incq %rsi             # Increment to the next character
+    incq input_position  # Update the input position
+    cmpq $INPUT_BUFFER_SIZE, input_position
+    jge .getInt_end_parse # End of buffer
+    jmp .getInt_digit_loop
+
+.getInt_end_parse:
+    leaq format_getint_endparse, %rdi
+    movq %rax, %rsi
+    call printf
+    imulq %r9, %rax # Apply sign
+    jmp .getInt_return
 
 .getInt_call_inImage:
+    leaq format_getInt_call_inImage, %rdi
+    movq input_position, %rsi
+    call printf
     call inImage
     jmp .getInt_start
 
-.getInt_end:
-    imulq %r8, %rcx  # Apply sign
-    movq %rcx, %rax
+.getInt_return:
+    leaq format_getInt_exit, %rdi
+    movq %rax, %rsi
+    movq input_position, %rdx
+    call printf
     popq %rbp
     ret
 
@@ -133,14 +178,10 @@ getText:
     movq $0, %r14    # count of copied characters
 
 .getText_start:
-    # Check if input buffer is empty or at the end
+    # Check if input buffer needs to be refreshed
     movq input_position, %rax
     cmpq $INPUT_BUFFER_SIZE, %rax
     jge .getText_call_inImage
-    leaq input_buffer, %rdi
-    addq %rax, %rdi
-    cmpb $0, (%rdi)
-    je .getText_call_inImage
 
 .getText_copy_loop:
     cmpq $0, %r13      # Check if n is 0
@@ -153,6 +194,9 @@ getText:
     leaq input_buffer, %rsi
     addq %rax, %rsi
     movzbq (%rsi), %rcx
+    cmpb $0, %cl      # Check for null terminator
+    je .getText_end
+
     movb %cl, (%r12)
 
     incq %r12
@@ -177,14 +221,10 @@ getChar:
     movq %rsp, %rbp
 
 .getChar_start:
-    # Check if input buffer is empty or at the end
+    # Check if input buffer needs to be refreshed
     movq input_position, %rax
     cmpq $INPUT_BUFFER_SIZE, %rax
     jge .getChar_call_inImage
-    leaq input_buffer, %rdi
-    addq %rax, %rdi
-    cmpb $0, (%rdi)
-    je .getChar_call_inImage
 
     leaq input_buffer, %rsi
     movq input_position, %rax
@@ -262,9 +302,6 @@ putInt:
     idivq %rcx
     addq $48, %rdx  # Convert remainder to ASCII
     pushq %rdx
-
-    cmpq $0, %rax
-    jnz .putInt_convert_loop
 
 .putInt_output_loop:
     cmpq $OUTPUT_BUFFER_SIZE, output_position
