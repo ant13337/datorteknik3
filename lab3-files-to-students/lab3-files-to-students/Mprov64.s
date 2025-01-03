@@ -8,6 +8,22 @@ temp:	.quad	0
 
 	.text
 	.global	main
+
+
+.extern inImage
+.extern getInt
+.extern getText
+.extern getInPos
+.extern setInPos
+.extern outImage
+.extern putInt
+.extern putText
+.extern putChar
+.extern getOutPos
+.extern setOutPos
+
+
+
 main:
 	pushq	$0
 	movq	$headMsg,%rdi
