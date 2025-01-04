@@ -69,41 +69,36 @@ getInt:
     pushq %rbp
     movq %rsp, %rbp
 
-    movq input_position, %rsi  # Save input_position before potential inImage call
+    # Logga start av getInt
     leaq format_getInt_entry, %rdi
-    movq %rsi, %rsi
+    movq input_position, %rsi
     call printf
 
+    # Start av getInt-rutinen
 .getInt_start:
-    # Check if input buffer needs to be refreshed
     movq input_position, %rax
     cmpq $INPUT_BUFFER_SIZE, %rax
-    jge .getInt_call_inImage
+    jge .getInt_call_inImage  # Bufferten är slut, fyll på med inImage
 
     leaq input_buffer, %rsi
     movq input_position, %rcx
-    addq %rcx, %rsi
+    addq %rcx, %rsi           # %rsi pekar på aktuell position i bufferten
 
+    # Hoppa över inledande blanksteg
 .getInt_skip_whitespace:
     movzbq (%rsi), %rdx
     cmpq $' ', %rdx
-    jne .getInt_check_sign
-    leaq format_getInt_skip_space, %rdi
-    movq input_position, %rsi
-    movzx %dl, %ecx
-    call printf
+    jne .getInt_check_sign    # Hitta första tecknet som inte är ett blanksteg
     incq %rsi
     incq input_position
     cmpq $INPUT_BUFFER_SIZE, input_position
-    jge .getInt_call_inImage  # Reached end of buffer, need more input
+    jge .getInt_call_inImage
     jmp .getInt_skip_whitespace
 
+    # Kontrollera om tecknet är '+' eller '-'
 .getInt_check_sign:
+    movq $1, %r9             # Standardtecken (positivt)
     movzbq (%rsi), %rdx
-    leaq format_getInt_checksign, %rdi
-    movq input_position, %rsi
-    movzx %dl, %ecx
-    call printf
     cmpq $'-', %rdx
     je .getInt_negative
     cmpq $'+', %rdx
@@ -111,52 +106,50 @@ getInt:
     jmp .getInt_parse_digits
 
 .getInt_negative:
-    movq $-1, %r9  # Sign multiplier
+    movq $-1, %r9            # Negativt tecken
     incq %rsi
     incq input_position
     jmp .getInt_parse_digits
 
 .getInt_positive:
-    movq $1, %r9   # Sign multiplier
     incq %rsi
     incq input_position
     jmp .getInt_parse_digits
 
+    # Huvudloop för att tolka siffror
 .getInt_parse_digits:
-    movq $0, %rax  # Initialize result to 0
+    movq $0, %rax            # Initiera resultatet till 0
 .getInt_digit_loop:
     movzbq (%rsi), %rdx
     cmpq $'0', %rdx
-    jl .getInt_end_parse  # Not a digit
+    jl .getInt_end_parse     # Slut på talet om tecknet är för litet
     cmpq $'9', %rdx
-    jg .getInt_end_parse  # Not a digit
+    jg .getInt_end_parse     # Slut på talet om tecknet är för stort
 
-    leaq format_getInt_parsedigit, %rdi
-    movq input_position, %rsi
-    movzx %dl, %ecx
-    movq %rax, %r8
-    call printf
-
-    subq $'0', %rdx
-    imulq $10, %rax
-    addq %rdx, %rax
-    incq %rsi             # Increment to the next character
-    incq input_position  # Update the input position
+    subq $'0', %rdx          # Omvandla ASCII-tecknet till en siffra
+    imulq $10, %rax          # Multiplicera ackumulatorn med 10
+    addq %rdx, %rax          # Lägg till siffran
+    incq %rsi                # Gå till nästa tecken
+    incq input_position
     cmpq $INPUT_BUFFER_SIZE, input_position
-    jge .getInt_end_parse # End of buffer
+    jge .getInt_end_parse    # Slut om bufferten tar slut
     jmp .getInt_digit_loop
 
+    # Slutför tolkning och applicera tecken
 .getInt_end_parse:
-    leaq format_getint_endparse, %rdi
-    movq %rax, %rsi
-    call printf
-    imulq %r9, %rax # Apply sign
-    jmp .getInt_return
+    imulq %r9, %rax          # Applicera tecknet på resultatet
 
-.getInt_call_inImage:
-    leaq format_getInt_call_inImage, %rdi
-    movq input_position, %rsi
+    # Logga avslutning
+    leaq format_getInt_exit, %rdi
+    movq %rax, %rsi
+    movq input_position, %rdx
     call printf
+
+    popq %rbp
+    ret
+
+    # Anropa inImage för att fylla på bufferten om den tar slut
+.getInt_call_inImage:
     call inImage
     jmp .getInt_start
 
