@@ -293,91 +293,49 @@ putInt:
     movq %rsp, %rbp
 
     movq %rdi, %rax  # n
-
-    # Log entry
-    leaq format_putInt_entry, %rdi
-    movq %rax, %rsi
-    call printf
-
-    # Handle the case where n is 0
-    cmpq $0, %rax
-    je .putInt_handle_zero
-
     movq output_position, %rsi
     leaq output_buffer, %rdi # Base address of output buffer
+
+    # Om n är negativt, hantera tecknet separat
+    movq %rax, %r10          # Kopiera n
+    cmpq $0, %r10
+    jge .putInt_positive
+    movb $'-', %al           # Lägg '-' i ett register
+    movb %al, (%rdi,%rsi,1)  # Flytta värdet från %al till minnesadressen
+    incq %rsi
+    negq %r10                # Gör talet positivt
+.putInt_positive:
+    movq %r10, %rax          # Börja omvandla n (positivt tal)
 
 .putInt_convert_loop:
     movq $0, %rdx
     movq $10, %rcx
     idivq %rcx
-
-    # Log inside convert loop
-    leaq format_putInt_convert_loop, %rdi
-    movq %rdx, %rsi
-    movq %rax, %rdx
-    call printf
-
     addq $48, %rdx  # Convert remainder to ASCII
     pushq %rdx
-    cmpq $0, %rax  # Check if quotient is zero
+
+    testq %rax, %rax         # Kolla om kvoten är 0
     jnz .putInt_convert_loop
 
 .putInt_output_loop:
-    cmpq $OUTPUT_BUFFER_SIZE, output_position
+    cmpq $OUTPUT_BUFFER_SIZE, %rsi
     jge .putInt_flush_and_continue
 
-    popq %rdx  # Pop the digit into rdx
-
-    # Log inside output loop
-    leaq format_putInt_output_loop, %rdi
-    movzbq %dl, %rsi
-    movq output_position, %rdx
-    call printf
-
-    movb %dl, (%rdi,%rsi,1)
+    popq %rax
+    movb %al, (%rdi,%rsi,1)
     incq %rsi
     movq %rsi, output_position # Update output_position
 
-    cmpq $0, %rsp
-    jnz .putInt_output_loop
+    cmpq %rsp, %rbp  # Korrekt syntax
+    jne .putInt_output_loop   # Fortsätt tills stacken är tömd
     jmp .putInt_end
 
 .putInt_flush_and_continue:
-    # Log flush
-    leaq format_putInt_flush_continue, %rdi
-    call printf
-
     call outImage
     movq $0, output_position
     jmp .putInt_output_loop
 
-.putInt_handle_zero:
-    # Log handle zero
-    leaq format_putInt_handle_zero, %rdi
-    call printf
-
-    cmpq $OUTPUT_BUFFER_SIZE, output_position
-    jge .putInt_flush_zero
-
-    leaq output_buffer, %rdi
-    movq output_position, %rsi
-    movb $'0', (%rdi,%rsi,1)
-    incq output_position
-    jmp .putInt_end
-
-.putInt_flush_zero:
-    # Log flush zero
-    leaq format_putInt_flush_zero, %rdi
-    call printf
-
-    call outImage
-    movq $0, output_position
-    jmp .putInt_handle_zero
-
 .putInt_end:
-    # Log exit
-    leaq format_putInt_exit, %rdi
-    call printf
     popq %rbp
     ret
 

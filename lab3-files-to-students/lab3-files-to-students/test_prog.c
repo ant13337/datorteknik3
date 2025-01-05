@@ -13,7 +13,7 @@ int main(){
     long long temp;
     unsigned int pos, count;
 
-    putInt(125);
+    //putInt(300);
 
 
     // Lägger inledande text i utmatningsbuffer, 
