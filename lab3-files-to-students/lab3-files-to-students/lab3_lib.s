@@ -16,6 +16,14 @@ format_getInt_exit: .asciz "getInt: Exiting, value=%ld, input_position=%ld\n"
 format_getInt_call_inImage: .asciz "getInt: Calling inImage from getInt, input_position=%ld\n"
 format_getint_endparse: .asciz "getInt: End parse, accumulator=%ld\n"
 
+format_putInt_entry: .asciz "putInt: Entering, n=%ld\n"
+format_putInt_handle_zero: .asciz "putInt: Handling zero\n"
+format_putInt_flush_zero: .asciz "putInt: Flushing buffer for zero\n"
+format_putInt_convert_loop: .asciz "putInt: Convert loop, remainder=%ld, quotient=%ld\n"
+format_putInt_output_loop: .asciz "putInt: Output loop, char='%c', output_position=%ld\n"
+format_putInt_flush_continue: .asciz "putInt: Flushing buffer and continuing\n"
+format_putInt_exit: .asciz "putInt: Exiting\n"
+
 .section .bss
 .comm stdin, 8
 .comm stdout, 8
@@ -279,13 +287,22 @@ outImage:
 
     popq %rbp
     ret
-
 # Funktion: putInt
 putInt:
     pushq %rbp
     movq %rsp, %rbp
 
     movq %rdi, %rax  # n
+
+    # Log entry
+    leaq format_putInt_entry, %rdi
+    movq %rax, %rsi
+    call printf
+
+    # Handle the case where n is 0
+    cmpq $0, %rax
+    je .putInt_handle_zero
+
     movq output_position, %rsi
     leaq output_buffer, %rdi # Base address of output buffer
 
@@ -293,15 +310,31 @@ putInt:
     movq $0, %rdx
     movq $10, %rcx
     idivq %rcx
+
+    # Log inside convert loop
+    leaq format_putInt_convert_loop, %rdi
+    movq %rdx, %rsi
+    movq %rax, %rdx
+    call printf
+
     addq $48, %rdx  # Convert remainder to ASCII
     pushq %rdx
+    cmpq $0, %rax  # Check if quotient is zero
+    jnz .putInt_convert_loop
 
 .putInt_output_loop:
     cmpq $OUTPUT_BUFFER_SIZE, output_position
     jge .putInt_flush_and_continue
 
-    popq %rax
-    movb %al, (%rdi,%rsi,1)
+    popq %rdx  # Pop the digit into rdx
+
+    # Log inside output loop
+    leaq format_putInt_output_loop, %rdi
+    movzbq %dl, %rsi
+    movq output_position, %rdx
+    call printf
+
+    movb %dl, (%rdi,%rsi,1)
     incq %rsi
     movq %rsi, output_position # Update output_position
 
@@ -310,11 +343,41 @@ putInt:
     jmp .putInt_end
 
 .putInt_flush_and_continue:
+    # Log flush
+    leaq format_putInt_flush_continue, %rdi
+    call printf
+
     call outImage
     movq $0, output_position
     jmp .putInt_output_loop
 
+.putInt_handle_zero:
+    # Log handle zero
+    leaq format_putInt_handle_zero, %rdi
+    call printf
+
+    cmpq $OUTPUT_BUFFER_SIZE, output_position
+    jge .putInt_flush_zero
+
+    leaq output_buffer, %rdi
+    movq output_position, %rsi
+    movb $'0', (%rdi,%rsi,1)
+    incq output_position
+    jmp .putInt_end
+
+.putInt_flush_zero:
+    # Log flush zero
+    leaq format_putInt_flush_zero, %rdi
+    call printf
+
+    call outImage
+    movq $0, output_position
+    jmp .putInt_handle_zero
+
 .putInt_end:
+    # Log exit
+    leaq format_putInt_exit, %rdi
+    call printf
     popq %rbp
     ret
 
