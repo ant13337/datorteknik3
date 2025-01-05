@@ -1,6 +1,6 @@
 .section .data
-INPUT_BUFFER_SIZE = 128
-OUTPUT_BUFFER_SIZE = 128
+INPUT_BUFFER_SIZE = 512
+OUTPUT_BUFFER_SIZE = 512
 input_buffer: .space INPUT_BUFFER_SIZE
 output_buffer: .space OUTPUT_BUFFER_SIZE
 input_position: .quad 0

@@ -57,6 +57,12 @@ int main(){
     putText(buf);               //idk
     putChar('\n');
     putInt(125);                //
+    putChar('\n');
+    putChar('t');
+    putChar('e');
+    putChar('s');
+    putChar('t');
+    putChar('\n');
     outImage();                 //
 
     // Lägger till sist avslutningstext i utmatningsbufferten,
