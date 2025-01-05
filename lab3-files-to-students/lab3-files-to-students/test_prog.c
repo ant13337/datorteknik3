@@ -29,15 +29,15 @@ int main(){
     // samt placerar uträkning med dessa tal att presentera i utmatningsbufferten.
     // Talen summeras också i variabeln sum.
     for (count=5; count>0; count-- ){
-        temp = getInt();        //maybe done?
+        temp = getInt();        //perfect
         if (temp < 0){
             pos = getOutPos();  //probably done?
             pos--;
             setOutPos(pos);     //probably done?
         }
         sum += temp;
-        putInt(temp);           //not working
-        putChar('+');           //idk
+        putInt(temp);           //perfect
+        putChar('+');           //probably fine
     }
     pos = getOutPos();          //
     pos--;
@@ -55,7 +55,7 @@ int main(){
     // och skriver sedan ut alltihopa i terminalen.
     getText(buf, 12);           //idk
     putText(buf);               //idk
-//    putChar('\n');
+    putChar('\n');
     putInt(125);                //
     outImage();                 //
 

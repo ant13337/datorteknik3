@@ -6,24 +6,6 @@ output_buffer: .space OUTPUT_BUFFER_SIZE
 input_position: .quad 0
 output_position: .quad 0
 
-format_inImage_entry: .asciz "inImage: Entering\n"
-format_inImage_exit: .asciz "inImage: Exiting, input_buffer='%s', input_position=%ld\n"
-format_getInt_entry: .asciz "getInt: Entering, input_position=%ld\n"
-format_getInt_skip_space: .asciz "getInt: Skipping whitespace, input_position=%ld, char='%c'\n"
-format_getInt_checksign: .asciz "getInt: Checking sign, input_position=%ld, char='%c'\n"
-format_getInt_parsedigit: .asciz "getInt: Parsing digit, input_position=%ld, char='%c', accumulator=%ld\n"
-format_getInt_exit: .asciz "getInt: Exiting, value=%ld, input_position=%ld\n"
-format_getInt_call_inImage: .asciz "getInt: Calling inImage from getInt, input_position=%ld\n"
-format_getint_endparse: .asciz "getInt: End parse, accumulator=%ld\n"
-
-format_putInt_entry: .asciz "putInt: Entering, n=%ld\n"
-format_putInt_handle_zero: .asciz "putInt: Handling zero\n"
-format_putInt_flush_zero: .asciz "putInt: Flushing buffer for zero\n"
-format_putInt_convert_loop: .asciz "putInt: Convert loop, remainder=%ld, quotient=%ld\n"
-format_putInt_output_loop: .asciz "putInt: Output loop, char='%c', output_position=%ld\n"
-format_putInt_flush_continue: .asciz "putInt: Flushing buffer and continuing\n"
-format_putInt_exit: .asciz "putInt: Exiting\n"
-
 .section .bss
 .comm stdin, 8
 .comm stdout, 8
@@ -51,9 +33,6 @@ inImage:
     pushq %rbp
     movq %rsp, %rbp
 
-    leaq format_inImage_entry, %rdi
-    call printf
-
     # Reset input position
     movq $0, input_position
 
@@ -64,11 +43,6 @@ inImage:
 
     call fgets
 
-    leaq format_inImage_exit, %rdi
-    leaq input_buffer, %rsi
-    movq input_position, %rdx
-    call printf
-
     popq %rbp
     ret
 
@@ -77,12 +51,6 @@ getInt:
     pushq %rbp
     movq %rsp, %rbp
 
-    # Logga start av getInt
-    leaq format_getInt_entry, %rdi
-    movq input_position, %rsi
-    call printf
-
-    # Start av getInt-rutinen
 .getInt_start:
     movq input_position, %rax
     cmpq $INPUT_BUFFER_SIZE, %rax
@@ -146,15 +114,7 @@ getInt:
     # Slutför tolkning och applicera tecken
 .getInt_end_parse:
     imulq %r9, %rax          # Applicera tecknet på resultatet
-
-    # Logga avslutning
-    leaq format_getInt_exit, %rdi
-    movq %rax, %rsi
-    movq input_position, %rdx
-    call printf
-
-    popq %rbp
-    ret
+    jmp .getInt_return
 
     # Anropa inImage för att fylla på bufferten om den tar slut
 .getInt_call_inImage:
@@ -162,10 +122,6 @@ getInt:
     jmp .getInt_start
 
 .getInt_return:
-    leaq format_getInt_exit, %rdi
-    movq %rax, %rsi
-    movq input_position, %rdx
-    call printf
     popq %rbp
     ret
 
@@ -282,11 +238,19 @@ outImage:
     leaq output_buffer, %rdi
     call puts
 
-    # Reset output position
+    # Reset output position and clear buffer
     movq $0, output_position
+    leaq output_buffer, %rdi
+    movq $OUTPUT_BUFFER_SIZE, %rcx
+    xor %al, %al  # Set %al to 0
+.clear_output_loop:
+    movb %al, (%rdi)
+    incq %rdi
+    loop .clear_output_loop
 
     popq %rbp
     ret
+
 # Funktion: putInt
 putInt:
     pushq %rbp
@@ -300,37 +264,55 @@ putInt:
     movq %rax, %r10          # Kopiera n
     cmpq $0, %r10
     jge .putInt_positive
-    movb $'-', %al           # Lägg '-' i ett register
-    movb %al, (%rdi,%rsi,1)  # Flytta värdet från %al till minnesadressen
+    cmpq $OUTPUT_BUFFER_SIZE, output_position
+    jge .putInt_flush_and_continue_negative
+    movb $'-', (%rdi,%rsi,1)  # Flytta värdet till minnesadressen
     incq %rsi
+    movq %rsi, output_position # Update output_position
     negq %r10                # Gör talet positivt
+    jmp .putInt_positive
+
+.putInt_flush_and_continue_negative:
+    call outImage
+    movq $0, output_position
+    movq %rdi, %rax  # n - reload the original value
+    jmp putInt  # restart the putInt logic
+
 .putInt_positive:
     movq %r10, %rax          # Börja omvandla n (positivt tal)
 
 .putInt_convert_loop:
+    cmpq $OUTPUT_BUFFER_SIZE, output_position
+    jge .putInt_flush_and_continue_conversion
     movq $0, %rdx
     movq $10, %rcx
     idivq %rcx
     addq $48, %rdx  # Convert remainder to ASCII
     pushq %rdx
-
     testq %rax, %rax         # Kolla om kvoten är 0
     jnz .putInt_convert_loop
+    jmp .putInt_output_loop
+
+.putInt_flush_and_continue_conversion:
+    call outImage
+    movq $0, output_position
+    movq %rdi, %rax  # n - reload the original value
+    movq %rax, %r10 # restore the positive value if it was negative
+    jmp .putInt_positive
 
 .putInt_output_loop:
-    cmpq $OUTPUT_BUFFER_SIZE, %rsi
-    jge .putInt_flush_and_continue
+    cmpq $OUTPUT_BUFFER_SIZE, output_position
+    jge .putInt_flush_and_continue_output
 
     popq %rax
     movb %al, (%rdi,%rsi,1)
     incq %rsi
     movq %rsi, output_position # Update output_position
-
     cmpq %rsp, %rbp  # Korrekt syntax
     jne .putInt_output_loop   # Fortsätt tills stacken är tömd
     jmp .putInt_end
 
-.putInt_flush_and_continue:
+.putInt_flush_and_continue_output:
     call outImage
     movq $0, output_position
     jmp .putInt_output_loop
@@ -387,8 +369,9 @@ putChar:
 
 .putChar_flush:
     call outImage
-    movb %al, output_buffer
-    movq $1, output_position
+    movq $0, output_position
+    # No need to place the character here, as the function will restart
+    jmp putChar # Restart the putChar logic
 
 .putChar_end:
     popq %rbp
