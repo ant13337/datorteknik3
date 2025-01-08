@@ -251,7 +251,7 @@ outImage:
     # Reset output position and clear buffer
     movq $0, output_position        # Reset the output position to the beginning of the buffer
     leaq output_buffer, %rdi        # Load the address of the output buffer into %rdi
-    movq $OUTPUT_BUFFER_SIZE, %rcx  # Load the output buffer size into %rcx for the loop counter
+    movq $OUTPUT_BUFFER_SIZE - 1, %rcx  # Load the output buffer size into %rcx for the loop counter
     xor %al, %al                    # Set %al to 0 (null terminator)
 .clear_output_loop:
     movb %al, (%rdi)                # Write a null terminator to the current buffer position
@@ -276,7 +276,7 @@ putInt:
     cmpq $0, %r10                   # Compare n with 0
     jge .putInt_positive            # If n is greater than or equal to 0, jump to the positive handling
     # Check if there's space for the negative sign
-    cmpq $OUTPUT_BUFFER_SIZE, output_position       # Compare output position with buffer size
+    cmpq $OUTPUT_BUFFER_SIZE - 1, output_position       # Compare output position with buffer size
     jge .putInt_flush_negative_sign # If no space, flush the buffer
     movb $'-', (%rdi,%rsi,1)        # Move the negative sign to the current buffer position
     incq %rsi                       # Increment the output position
@@ -294,7 +294,7 @@ putInt:
     movq %r10, %rax                 # Start converting n (positive)
 
 .putInt_convert_loop:
-    cmpq $OUTPUT_BUFFER_SIZE, output_position   # Check if output buffer is full
+    cmpq $OUTPUT_BUFFER_SIZE - 1, output_position   # Check if output buffer is full
     jge .putInt_flush_and_continue_conversion   # If full, flush and continue
     movq $0, %rdx                   # Clear %rdx for division
     movq $10, %rcx                  # Set the divisor to 10
@@ -313,7 +313,7 @@ putInt:
     jmp .putInt_positive            # Restart the positive number handling
 
 .putInt_output_loop:
-    cmpq $OUTPUT_BUFFER_SIZE, output_position       # Check if output buffer is full
+    cmpq $OUTPUT_BUFFER_SIZE - 1, output_position       # Check if output buffer is full
     jge .putInt_flush_and_continue_output           # If full, flush and continue
 
     popq %rax                       # Pop the ASCII digit from the stack
@@ -347,7 +347,7 @@ putText:
     cmpb $0, %al                    # Check if it's the null terminator
     je .putText_end                 # If it is, jump to the end
 
-    cmpq $OUTPUT_BUFFER_SIZE, output_position       # Check if the output buffer is full
+    cmpq $OUTPUT_BUFFER_SIZE - 1, output_position       # Check if the output buffer is full
     jge .putText_flush              # If it is, flush the buffer
 
     movq output_position, %rcx      # Load the current output position into %rcx
@@ -373,7 +373,7 @@ putChar:
     movb %dil, %al                  # Move the character to be printed (c) to %al
     leaq output_buffer, %rdi        # Load the address of the output buffer into %rdi
 
-    cmpq $OUTPUT_BUFFER_SIZE, output_position       # Check if the output buffer is full
+    cmpq $OUTPUT_BUFFER_SIZE - 1, output_position       # Check if the output buffer is full
     jge .putChar_flush              # If it is, flush the buffer
 
     movq output_position, %rcx      # Load the current output position into %rcx
@@ -408,22 +408,22 @@ setOutPos:
     movq %rsp, %rbp                 # Set the base pointer to the current stack pointer
 
     movq %rdi, %rax                 # Move the new output position (n) to %rax
+    movq %rax, output_position      # Optimistically set output_position to n
 
-    cmpq $0, %rax                   # Compare n with 0
-    jl .setOutPos_clamp_low         # If n is less than 0, clamp to 0
+    cmpq $0, %rax                   # Check if n < 0
+    jl .setOutPos_clamp_low         # If yes, clamp it to 0
 
-    cmpq $OUTPUT_BUFFER_SIZE, %rax  # Compare n with the maximum buffer size
-    jg .setOutPos_clamp_high        # If n is greater than the maximum, clamp to the maximum
+    cmpq $OUTPUT_BUFFER_SIZE - 1, %rax  # Check if n > OUTPUT_BUFFER_SIZE
+    jg .setOutPos_clamp_high        # If yes, clamp it to OUTPUT_BUFFER_SIZE
 
-    movq %rax, output_position      # Set the output position to n
-    jmp .setOutPos_end              # Jump to the end
+    jmp .setOutPos_end              # Jump to the end if no clamping is needed
 
 .setOutPos_clamp_low:
-    movq $0, output_position        # Set the output position to 0
-    jmp .setOutPos_end              # Jump to the end
+    movq $0, output_position        # Clamp output_position to 0
+    jmp .setOutPos_end              # Skip the high clamping logic
 
 .setOutPos_clamp_high:
-    movq $OUTPUT_BUFFER_SIZE, output_position       # Set the output position to the maximum size
+    movq $OUTPUT_BUFFER_SIZE - 1, output_position  # Clamp output_position to the max size
 
 .setOutPos_end:
     popq %rbp                       # Restore the old base pointer
